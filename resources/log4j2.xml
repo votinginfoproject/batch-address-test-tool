@@ -19,6 +19,7 @@
   <Loggers>
     <Root level="info">
       <AppenderRef ref="Console"/>
+      <AppenderRef ref="Syslog"/>
     </Root>
   </Loggers>
 </Configuration>

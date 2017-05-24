@@ -1,6 +1,7 @@
 (ns vip.batch-address-test-tool.core
   (:require [clojure.tools.logging :as log]
-            [vip.batch-address-test-tool.queue :as q]))
+            [vip.batch-address-test-tool.queue :as q])
+  (:gen-class))
 
 
 (defn -main [& args]
