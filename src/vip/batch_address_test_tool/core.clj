@@ -1,4 +1,6 @@
-(ns vip.batch-address-test-tool.core)
+(ns vip.batch-address-test-tool.core
+  (:require [clojure.tools.logging :as log]))
+
 
 (defn -main [& args]
   (let [id (java.util.UUID/randomUUID)]
