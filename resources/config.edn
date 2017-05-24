@@ -1,3 +1,3 @@
-{:rabbitmq {:exchange "events"
-            :connection {:host "localhost"
-                         :port 5672}}}
+{:rabbitmq {:connection {:host #resource-config/env "RABBITMQ_PORT_5672_TCP_ADDR"
+                         :port #resource-config/edn #resource-config/env "RABBITMQ_PORT_5672_TCP_PORT"}
+            :exchange #resource-config/env "VIP_BA_RABBITMQ_EXCHANGE"}}

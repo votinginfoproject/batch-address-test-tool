@@ -7,4 +7,5 @@
                  [org.apache.logging.log4j/log4j-slf4j-impl "2.5"]
                  [org.slf4j/slf4j-api "1.7.20"]
                  [org.clojure/tools.logging "0.3.1"]]
+  :profiles {:dev {:resource-paths ["dev-resources"]}}
   :main vip.batch-address-test-tool.core)
