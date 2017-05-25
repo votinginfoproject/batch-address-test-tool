@@ -5,10 +5,33 @@
             [langohr.exchange :as le]
             [langohr.queue :as lq]
             [langohr.basic :as lb]
+            [langohr.consumers :as lcons]
+            [clojure.edn :as edn]
             [turbovote.resource-config :refer [config]]))
 
 (def rabbit-connection (atom nil))
 (def rabbit-channel (atom nil))
+
+(defn ->handler [handler-fn]
+  (fn [ch metadata ^bytes payload]
+    (try
+      (let [message (-> (String. payload)
+                        edn/read-string)]
+       (log/debug "Received a message:" (pr-str message))
+       (handler-fn message))
+      (catch Exception ex
+        (log/error "Error consuming message" (String. payload))
+        (log/error (.getMessage ex))))))
+
+(defn setup-consumer
+  [ch handler-fn]
+  (lcons/subscribe ch "batch-address.file.submit"
+                 (->handler handler-fn)
+                 {:auto-ack true}))
+
+(defn print-handler
+  [message]
+  (log/debug "I'm handing a message!" (pr-str message)))
 
 (defn initialize []
   (let [max-retries 5]
@@ -25,11 +48,13 @@
           (do (Thread/sleep (* attempt 1000))
               (recur (inc attempt)))
           (do (log/error "Connecting to RabbitMQ failed. Bailing.")
-            (throw (ex-info "Connecting to RabbitMQ failed" {:attemts attempt})))))))
+            (throw (ex-info "Connecting to RabbitMQ failed" {:attempts attempt})))))))
   (reset! rabbit-channel
           (let [ch (lch/open @rabbit-connection)]
             (le/topic ch (config [:rabbitmq :exchange]) {:durable false :auto-delete true})
             (log/info "RabbitMQ topic set.")
+            (setup-consumer ch print-handler)
+            (log/info "Setup-consumer called")
             ch)))
 
 (defn publish
