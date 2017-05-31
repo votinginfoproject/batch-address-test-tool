@@ -43,3 +43,12 @@
                          :expected-polling-location "Homer Elementary School, 234 Main Street, Springfield, IL, 12345"}))))
       (catch Exception ex
         (is (= 0 1) "Unexpected exception validating a good address row")))))
+
+(deftest ->result-row-test
+  (testing "Partial result"
+    (is (= ["foo" "bar" "" ""] (->result-row {:address "foo" :expected-polling-location "bar"}))))
+  (testing "Full result"
+    (is (= ["foo" "bar" "baz" "blee"] (->result-row {:address "foo"
+                                                     :expected-polling-location "bar"
+                                                     :api-result "baz"
+                                                     :status "blee"})))))

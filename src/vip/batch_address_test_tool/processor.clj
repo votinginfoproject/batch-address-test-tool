@@ -81,7 +81,7 @@
 (defn ->result-row
   "Creates a vector of values from result suitable for csv writing"
   [result]
-  (map #(get result % "") [:address :expected-polling-location :api-result :score]))
+  (map #(get result % "") [:address :expected-polling-location :api-result :status]))
 
 (defn ->results-file
   "Creates the csv data and writes it to a temp file"
