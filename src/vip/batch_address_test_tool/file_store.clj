@@ -3,23 +3,22 @@
             [clj-time.core :as time]
             [clj-time.coerce :as coerce]))
 
-; a function to take in a bucket name and file name, download that file, save it to a tmp directory
-; a function to take in a temp file name and the original bucket/file name and put in a new bucket
+(def conf {:endpoint "us-east-1"})
 
 (defn fetch-file
   [bucket-name file-name]
-  (-> (s3/get-object cred :bucket-name bucket-name :key file-name :range 0)
+  (-> (s3/get-object conf :bucket-name bucket-name :key file-name :range 0)
     :input-stream
     slurp))
 
 
 (defn save-file
   [bucket-name file-name upload-file]
-  (s3/put-object cred
+  (s3/put-object conf
                  :bucket-name bucket-name
                  :key file-name
                  :file upload-file))
 
 (defn url-for-file
   [bucket-name file-name]
-  (s3/generate-presigned-url  cred bucket-name file-name (-> 3 time/days time/from-now coerce/to-date)))
+  (s3/generate-presigned-url conf bucket-name file-name (-> 3 time/days time/from-now coerce/to-date)))
