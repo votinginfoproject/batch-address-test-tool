@@ -6,6 +6,15 @@
             [clojure.string :as str])
   (:import [java.io File]))
 
+(defn ->pass-through
+  "Defines a function that will only call source-fn if there isn't an error
+  in the context"
+  [source-fn]
+  (fn [ctx]
+    (if (contains? ctx :error)
+      ctx
+      (source-fn ctx))))
+
 (defn retrieve-file
   "Retrieves the file for processing from s3"
   [ctx]
@@ -37,29 +46,32 @@
     {:address (first row)
      :expected-polling-location (second row)}))
 
-(defn validate-and-parse-file
+(defn validate-and-parse-file*
   "Calls validate-header-row on first row in file and maps remaining rows with
    validate-and-parse-row"
   [ctx]
-  (if (contains? ctx :error)
-    ctx
-    (try
-      (let [rows (csv/read-csv (:address-file ctx))]
-        (validate-header-row (first rows))
-        ; TODO iterate with index to stop at 300 rows
-        (assoc ctx :addresses
-               (doall (map validate-and-parse-row (rest rows)))))
-      (catch Exception ex
-        (assoc ctx :error ex)))))
+  (try
+    (let [rows (csv/read-csv (:address-file ctx))]
+      (validate-header-row (first rows))
+      ; TODO iterate with index to stop at 300 rows
+      (assoc ctx :addresses
+             (doall (map validate-and-parse-row (rest rows)))))
+    (catch Exception ex
+      (assoc ctx :error ex))))
 
+(def validate-and-parse-file (->pass-through validate-and-parse-file*))
 
-(defn retrieve-polling-locations
+(defn retrieve-polling-locations*
   [ctx]
   ctx)
 
-(defn calculate-match
+(def retrieve-polling-locations (->pass-through retrieve-polling-locations*))
+
+(defn calculate-match*
   [ctx]
   ctx)
+
+(def calculate-match (->pass-through calculate-match*))
 
 (defn ->group
   "Extracts group number from the file name"
@@ -82,19 +94,19 @@
       (csv/write-csv writer csv-data))
     temp-file))
 
-(defn prepare-response
+(defn prepare-response*
   "Saves output file to s3 and generates data for response message"
   [ctx]
-  (if (contains? ctx :error)
-    ctx
-    (let [group (->group (get-in ctx [:input "fileName"]))
-          bucket-name (get-in ctx [:input "bucketName"])
-          output-file-name (str/join "/" [group "output" "results.csv"])
-          output-file (->results-file ctx)]
-      (cloud-store/save-file bucket-name output-file-name output-file)
-      (assoc ctx :results {:file-name output-file-name
-                           :bucket-name bucket-name
-                           :url (.toString (cloud-store/url-for-file bucket-name output-file-name))}))))
+  (let [group (->group (get-in ctx [:input "fileName"]))
+        bucket-name (get-in ctx [:input "bucketName"])
+        output-file-name (str/join "/" [group "output" "results.csv"])
+        output-file (->results-file ctx)]
+    (cloud-store/save-file bucket-name output-file-name output-file)
+    (assoc ctx :results {:file-name output-file-name
+                         :bucket-name bucket-name
+                         :url (.toString (cloud-store/url-for-file bucket-name output-file-name))})))
+
+(def prepare-response (->pass-through prepare-response*))
 
 (defn respond
   "Publishes response message to output queue"
