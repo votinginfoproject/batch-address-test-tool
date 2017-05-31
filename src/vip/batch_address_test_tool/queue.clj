@@ -7,6 +7,7 @@
             [langohr.basic :as lb]
             [langohr.consumers :as lcons]
             [clojure.edn :as edn]
+            [vip.batch-address-test-tool.file-store :as file-store]
             [turbovote.resource-config :refer [config]]))
 
 (def rabbit-connection (atom nil))
@@ -29,11 +30,8 @@
                  (->handler handler-fn)
                  {:auto-ack true}))
 
-(defn print-handler
-  [message]
-  (log/debug "I'm handing a message!" (pr-str message)))
-
-(defn initialize []
+(defn initialize
+  [handler-fn]
   (let [max-retries 5]
     (loop [attempt 1]
       (try
@@ -53,15 +51,24 @@
           (let [ch (lch/open @rabbit-connection)]
             (le/topic ch (config [:rabbitmq :exchange]) {:durable false :auto-delete true})
             (log/info "RabbitMQ topic set.")
-            (setup-consumer ch print-handler)
+            (setup-consumer ch handler-fn)
             (log/info "Setup-consumer called")
             ch)))
 
 (defn publish
-  "Publish a message to the qa-engine topic exchange on the given
+  [queue-name payload]
+  (log/debug (pr-str payload) "->" queue-name)
+  (lb/publish @rabbit-channel
+              ""
+              queue-name
+              (pr-str payload)
+              {:content-type "application/edn"}))
+
+(defn publish-event
+  "Publish a message to the batch-address topic exchange on the given
   routing-key. The payload will be converted to EDN."
   [payload routing-key]
-  (log/debug routing-key "-" (pr-str payload))
+  (log/debug (pr-str payload) "->" routing-key)
   (lb/publish @rabbit-channel
               (config [:rabbitmq :exchange])
               routing-key

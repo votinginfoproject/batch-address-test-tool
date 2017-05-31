@@ -7,7 +7,10 @@
                  [org.apache.logging.log4j/log4j-slf4j-impl "2.8.2"]
                  [org.slf4j/slf4j-api "1.7.25"]
                  [org.clojure/tools.logging "0.3.1"]
-                 [com.climate/clj-newrelic "0.2.1"]]
+                 [amazonica "0.3.101"]
+                 [com.climate/clj-newrelic "0.2.1"]
+                 [org.clojure/data.csv "0.1.2"]
+                 [clj-time "0.13.0"]]
   :plugins [[com.pupeno/jar-copier "0.4.0"]]
   :profiles {:dev {:resource-paths ["dev-resources"]}}
   :java-agents [[com.newrelic.agent.java/newrelic-agent "3.25.0"]]
