@@ -1,5 +1,5 @@
-(ns vip.batch-address-test-tool.core-test
-  (:require [vip.batch-address-test-tool.core :refer :all]
+(ns vip.batch-address-test-tool.processor-test
+  (:require [vip.batch-address-test-tool.processor :refer :all]
             [clojure.test :refer :all]))
 
 (deftest validate-header-row-test

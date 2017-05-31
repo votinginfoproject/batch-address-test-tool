@@ -7,7 +7,6 @@
             [langohr.basic :as lb]
             [langohr.consumers :as lcons]
             [clojure.edn :as edn]
-            [vip.batch-address-test-tool.file-store :as file-store]
             [turbovote.resource-config :refer [config]]))
 
 (def rabbit-connection (atom nil))
