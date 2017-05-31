@@ -7,6 +7,7 @@
   (:import [java.io File]))
 
 (defn retrieve-file
+  "Retrieves the file for processing from s3"
   [ctx]
   (try
     (let [file-name   (get-in ctx [:input "fileName"])
@@ -17,6 +18,8 @@
       (assoc ctx :error ex))))
 
 (defn validate-header-row
+  "Validates the header row of the input file to confirm 2 headers with
+   expected names"
   [header-row]
   (if (not= (count header-row) 2)
     (throw (Exception. "Incorrect number of headers, expected 2"))
@@ -26,6 +29,8 @@
         (throw (Exception. "Expected second header item to be \"expected_polling_location\""))))))
 
 (defn validate-and-parse-row
+  "Validates number of elements in a row and returns row values parsed into
+   a map"
   [row]
   (if (not= (count row) 2)
     (throw (Exception. "Incorrect number of row elements, expected 2"))
@@ -33,6 +38,8 @@
      :expected-polling-location (second row)}))
 
 (defn validate-and-parse-file
+  "Calls validate-header-row on first row in file and maps remaining rows with
+   validate-and-parse-row"
   [ctx]
   (if (contains? ctx :error)
     ctx
@@ -55,14 +62,17 @@
   ctx)
 
 (defn ->group
+  "Extracts group number from the file name"
   [file-name]
   (first (str/split file-name #"/")))
 
 (defn ->result-row
+  "Creates a vector of values from result suitable for csv writing"
   [result]
   (map #(get result % "") [:address :expected-polling-location :api-result :score]))
 
 (defn ->results-file
+  "Creates the csv data and writes it to a temp file"
   [ctx]
   (let [header [["voter_address" "expected_polling_location" "api_result" "status"]]
         result-rows (map ->result-row (:addresses ctx))
@@ -73,6 +83,7 @@
     temp-file))
 
 (defn prepare-response
+  "Saves output file to s3 and generates data for response message"
   [ctx]
   (if (contains? ctx :error)
     ctx
@@ -86,16 +97,22 @@
                            :url (.toString (cloud-store/url-for-file bucket-name output-file-name))}))))
 
 (defn respond
+  "Publishes response message to output queue"
   [ctx]
   (if (contains? ctx :error)
-    (println "got an error" (.getMessage (:error ctx)))
+    (q/publish "batch-address.file.complete" {"status" "error"
+                                              "error" {"message" (.getMessage (:error ctx))}})
     (let [response-message {"fileName" (get-in ctx [:results :file-name])
                             "bucketName" (get-in ctx [:results :bucket-name])
                             "status" "ok"
                             "url" (get-in ctx [:results :url])}]
       (q/publish "batch-address.file.complete" response-message))))
 
-(defn handler [message]
+(defn process-message
+  "Takes an incoming message, downloads the file, validates the contents,
+   makes Civic Info API calls, scores responses, prepares the output file,
+   and puts output message on queue"
+  [message]
   (let [ctx {:input message}]
     (-> ctx
         retrieve-file

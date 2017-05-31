@@ -12,7 +12,10 @@
 (def rabbit-connection (atom nil))
 (def rabbit-channel (atom nil))
 
-(defn ->handler [handler-fn]
+(defn ->handler
+  "Creates a function that can take a rabbit message, parse it as edn, and
+   send it to the handler function"
+  [handler-fn]
   (fn [ch metadata ^bytes payload]
     (try
       (let [message (-> (String. payload)
@@ -24,12 +27,15 @@
         (log/error (.getMessage ex))))))
 
 (defn setup-consumer
+  "Sets up the handler function to process messages on the
+   batch-address.file.submit channel"
   [ch handler-fn]
   (lcons/subscribe ch "batch-address.file.submit"
                  (->handler handler-fn)
                  {:auto-ack true}))
 
 (defn initialize
+  "Connects to rabbit and sets up handler function to consume messages"
   [handler-fn]
   (let [max-retries 5]
     (loop [attempt 1]
@@ -51,10 +57,10 @@
             (le/topic ch (config [:rabbitmq :exchange]) {:durable false :auto-delete true})
             (log/info "RabbitMQ topic set.")
             (setup-consumer ch handler-fn)
-            (log/info "Setup-consumer called")
             ch)))
 
 (defn publish
+  "Sends the payload to the given queue, printing it as a EDN string"
   [queue-name payload]
   (log/debug (pr-str payload) "->" queue-name)
   (lb/publish @rabbit-channel
