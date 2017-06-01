@@ -30,6 +30,7 @@ ExecStart=/bin/bash -c 'docker run --name ${CONTAINER} \
   --env VIP_BA_RABBITMQ_EXCHANGE=$(curl -s http://${COREOS_PRIVATE_IPV4}:8500/v1/kv/data-suite/rabbitmq/exchange?raw) \
   --env NEW_RELIC_LICENSE_KEY=$(curl -s http://${COREOS_PRIVATE_IPV4}:8500/v1/kv/data-suite/newrelic/license-key?raw) \
   --env NEW_RELIC_ENVIRONMENT=$(curl -s http://${COREOS_PRIVATE_IPV4}:8500/v1/kv/data-suite/newrelic/environment?raw) \
+  --publish 10000
   ${DOCKER_IMAGE}'
 
 ExecStop=/usr/bin/docker stop ${CONTAINER}
