@@ -3,7 +3,8 @@
             [clojure.data.csv :as csv]
             [vip.batch-address-test-tool.queue :as q]
             [vip.batch-address-test-tool.cloud-store :as cloud-store]
-            [clojure.string :as str])
+            [clojure.string :as str]
+            [vip.batch-address-test-tool.civic-info :as civic-info])
   (:import [java.io File]))
 
 (defn ->pass-through
@@ -51,9 +52,8 @@
    validate-and-parse-row"
   [ctx]
   (try
-    (let [rows (csv/read-csv (:address-file ctx))]
+    (let [rows (take 301 (csv/read-csv (:address-file ctx)))]
       (validate-header-row (first rows))
-      ; TODO iterate with index to stop at 300 rows
       (assoc ctx :addresses
              (doall (map validate-and-parse-row (rest rows)))))
     (catch Exception ex
@@ -63,7 +63,10 @@
 
 (defn retrieve-polling-locations*
   [ctx]
-  ctx)
+  (let [addresses (:addresses ctx)
+        polling-locations (doall (map #(civic-info/address->polling-location (:address %)) addresses))
+        merged (mapv #(assoc %1 :api-result %2) addresses polling-locations)]
+    (assoc ctx :addresses merged)))
 
 (def retrieve-polling-locations (->pass-through retrieve-polling-locations*))
 

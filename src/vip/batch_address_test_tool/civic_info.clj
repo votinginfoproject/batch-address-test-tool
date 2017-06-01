@@ -21,6 +21,10 @@
         params {"address" address
                 "key" api-key
                 "electionId" 2000}
-        opts {:query-params params :as :json :debug true}
+        opts {:query-params params
+              :as :json
+              :throw-exceptions false}
         response (client/get url opts)]
+      (log/debug "queried civic info API with address" (pr-str address)
+                 "and received status code" (:status response))
       (response->polling-location response)))
