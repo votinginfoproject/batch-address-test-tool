@@ -1,3 +1,0 @@
-{:rabbitmq {:connection {:host "localhost"
-                         :port 5672}
-            :exchange "events"}}
