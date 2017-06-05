@@ -4,7 +4,8 @@
             [vip.batch-address-test-tool.queue :as q]
             [vip.batch-address-test-tool.cloud-store :as cloud-store]
             [clojure.string :as str]
-            [vip.batch-address-test-tool.civic-info :as civic-info])
+            [vip.batch-address-test-tool.civic-info :as civic-info]
+            [vip.batch-address-test-tool.match :as match])
   (:import [java.io File]))
 
 (defn ->pass-through
@@ -70,11 +71,23 @@
 
 (def retrieve-polling-locations (->pass-through retrieve-polling-locations*))
 
-(defn calculate-match*
+(defn calculate-scores*
   [ctx]
-  ctx)
+  (let [addresses (:addresses ctx)
+        scores (doall (map match/calculate-score addresses))
+        merged (mapv #(assoc %1 :score %2) addresses scores)]
+    (assoc ctx :addresses merged)))
 
-(def calculate-match (->pass-through calculate-match*))
+(def calculate-scores (->pass-through calculate-scores*))
+
+(defn calculate-matches*
+  [ctx]
+  (let [addresses (:addresses ctx)
+        matches (doall (map match/calculate-match addresses))
+        merged (mapv #(assoc %1 :match %2) addresses matches)]
+    (assoc ctx :addresses merged)))
+
+(def calculate-matches (->pass-through calculate-matches*))
 
 (defn ->group
   "Extracts group number from the file name"
@@ -84,13 +97,15 @@
 (defn ->result-row
   "Creates a vector of values from result suitable for csv writing"
   [result]
-  (map #(get result % "") [:address :expected-polling-location :api-result :status]))
+  (map #(get result % "") [:address :expected-polling-location :api-result :match]))
 
 (defn ->results-file
   "Creates the csv data and writes it to a temp file"
   [ctx]
   (let [header [["voter_address" "expected_polling_location" "api_result" "status"]]
-        result-rows (map ->result-row (:addresses ctx))
+        addresses (:addresses ctx)
+        sorted (reverse (sort-by :score addresses))
+        result-rows (map ->result-row sorted)
         csv-data (concat header result-rows)
         temp-file (File/createTempFile "address-results" ".tmp")]
     (with-open [writer (clojure.java.io/writer temp-file)]
@@ -133,6 +148,7 @@
         retrieve-file
         validate-and-parse-file
         retrieve-polling-locations
-        calculate-match
+        calculate-scores
+        calculate-matches
         prepare-response
         respond)))
