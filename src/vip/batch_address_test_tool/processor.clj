@@ -64,7 +64,7 @@
 (defn retrieve-polling-locations*
   [ctx]
   (let [addresses (:addresses ctx)
-        polling-locations (doall (map #(civic-info/address->polling-location (:address %)) addresses))
+        polling-locations (map #(civic-info/address->polling-location (:address %)) addresses)
         merged (mapv #(assoc %1 :api-result %2) addresses polling-locations)]
     (assoc ctx :addresses merged)))
 
