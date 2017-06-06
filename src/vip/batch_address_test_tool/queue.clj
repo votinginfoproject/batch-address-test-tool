@@ -59,9 +59,9 @@
             (setup-consumer ch handler-fn)
             ch)))
 
-(defn publish
+(defn publish-to-queue
   "Sends the payload to the given queue, printing it as a EDN string"
-  [queue-name payload]
+  [payload queue-name]
   (log/debug (pr-str payload) "->" queue-name)
   (lb/publish @rabbit-channel
               ""

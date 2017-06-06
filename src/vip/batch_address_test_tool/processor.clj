@@ -112,13 +112,14 @@
   "Publishes response message to output queue"
   [ctx]
   (if (contains? ctx :error)
-    (q/publish "batch-address.file.complete" {"status" "error"
-                                              "error" {"message" (.getMessage (:error ctx))}})
+    (q/publish-to-queue {"status" "error"
+                         "error" {"message" (.getMessage (:error ctx))}}
+                        "batch-address.file.complete")
     (let [response-message {"fileName" (get-in ctx [:results :file-name])
                             "bucketName" (get-in ctx [:results :bucket-name])
                             "status" "ok"
                             "url" (get-in ctx [:results :url])}]
-      (q/publish "batch-address.file.complete" response-message))))
+      (q/publish-to-queue response-message "batch-address.file.complete"))))
 
 (defn process-message
   "Takes an incoming message, downloads the file, validates the contents,
