@@ -74,8 +74,8 @@
 (defn calculate-scores*
   [ctx]
   (let [addresses (:addresses ctx)
-        scores (doall (map match/calculate-score addresses))
-        merged (mapv #(assoc %1 :score %2) addresses scores)]
+        scores (map match/calculate-score addresses)
+        merged (map #(assoc %1 :score %2) addresses scores)]
     (assoc ctx :addresses merged)))
 
 (def calculate-scores (->pass-through calculate-scores*))
@@ -83,8 +83,8 @@
 (defn calculate-matches*
   [ctx]
   (let [addresses (:addresses ctx)
-        matches (doall (map match/calculate-match addresses))
-        merged (mapv #(assoc %1 :match %2) addresses matches)]
+        matches (map match/calculate-match addresses)
+        merged (map #(assoc %1 :match %2) addresses matches)]
     (assoc ctx :addresses merged)))
 
 (def calculate-matches (->pass-through calculate-matches*))
