@@ -14,13 +14,11 @@
 
 (deftest calculate-match-test
   (testing "Match"
-    (dorun
-      (for [n (take 10 (iterate inc 0))]
-        (is (= "Match" (calculate-match {:score n}))))))
+    (doseq [n (range 10)]
+        (is (= "Match" (calculate-match {:score n})))))
   (testing "Possible Mismatch"
-    (dorun
-      (for [n (take 11 (iterate inc 10))]
-        (is (= "Possible Mismatch" (calculate-match {:score n}))))))
+    (doseq [n (range 10 21)]
+        (is (= "Possible Mismatch" (calculate-match {:score n})))))
   (testing "Mismatch"
     (is (= "Mismatch" (calculate-match {:score 21}))))
   (testing "No Result"
