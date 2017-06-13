@@ -51,4 +51,4 @@
     (is (= ["foo" "bar" "baz" "blee"] (->result-row {:address "foo"
                                                      :expected-polling-location "bar"
                                                      :api-result "baz"
-                                                     :status "blee"})))))
+                                                     :match "blee"})))))
