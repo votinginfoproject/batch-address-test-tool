@@ -1,3 +1,4 @@
 {:rabbitmq {:connection {:host #resource-config/env "RABBITMQ_PORT_5672_TCP_ADDR"
                          :port #resource-config/edn #resource-config/env "RABBITMQ_PORT_5672_TCP_PORT"}
-            :exchange #resource-config/env "VIP_BA_RABBITMQ_EXCHANGE"}}
+            :exchange #resource-config/env "VIP_BA_RABBITMQ_EXCHANGE"}
+ :civic-info-api-key #resource-config/env "GOOGLE_CIVIC_INFO_API_KEY"}
