@@ -138,7 +138,7 @@
                             "status" "ok"
                             "url" (get-in ctx [:results :url])
                             "groupName" (get-in ctx [:input "groupName"])
-                            "transactionID" (get-in ctx [:input "transactionId"])}]
+                            "transactionId" (get-in ctx [:input "transactionId"])}]
       (q/publish-to-queue response-message "batch-address.file.complete"))))
 
 (defn process-message
