@@ -136,7 +136,9 @@
     (let [response-message {"fileName" (get-in ctx [:results :file-name])
                             "bucketName" (get-in ctx [:results :bucket-name])
                             "status" "ok"
-                            "url" (get-in ctx [:results :url])}]
+                            "url" (get-in ctx [:results :url])
+                            "groupName" (get-in ctx [:input "groupName"])
+                            "transactionId" (get-in ctx [:input "transactionId"])}]
       (q/publish-to-queue response-message "batch-address.file.complete"))))
 
 (defn process-message
