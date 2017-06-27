@@ -115,7 +115,7 @@
 (defn prepare-response*
   "Saves output file to s3 and generates data for response message"
   [ctx]
-  (let [group (->group (get-in ctx [:input "fileName"]))
+  (let [group (->group (get-in ctx [:input "groupName"]))
         bucket-name (get-in ctx [:input "bucketName"])
         output-file-name (str/join "/" [group "output" "results.csv"])
         output-file (->results-file ctx)]
