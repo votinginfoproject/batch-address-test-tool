@@ -131,7 +131,9 @@
   [ctx]
   (if (contains? ctx :error)
     (q/publish-to-queue {"status" "error"
-                         "error" {"message" (.getMessage (:error ctx))}}
+                         "error" {"message" (.getMessage (:error ctx))}
+                         "groupName" (get-in ctx [:input "groupName"])
+                         "transactionId" (get-in ctx [:input "transactionId"])}
                         "batch-address.file.complete")
     (let [response-message {"fileName" (get-in ctx [:results :file-name])
                             "bucketName" (get-in ctx [:results :bucket-name])
