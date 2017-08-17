@@ -48,12 +48,17 @@
     {:address (first row)
      :expected-polling-location (second row)}))
 
+(defn not-blank-row? [row]
+  (not (and (= 1 (count row))
+            (str/blank? (first row)))))
+
 (defn validate-and-parse-file*
   "Calls validate-header-row on first row in file and maps remaining rows with
    validate-and-parse-row"
   [ctx]
   (try
-    (let [rows (take 301 (csv/read-csv (:address-file ctx)))]
+    (let [rows (take 301 (filter not-blank-row?
+                                 (csv/read-csv (:address-file ctx))))]
       (validate-header-row (first rows))
       (assoc ctx :addresses
              (doall (map validate-and-parse-row (rest rows)))))

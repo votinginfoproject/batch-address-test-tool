@@ -44,6 +44,15 @@
       (catch Exception ex
         (is (= 0 1) "Unexpected exception validating a good address row")))))
 
+(deftest validate-and-parse-file*-test
+  (testing "skips empty rows, even at top of file"
+    (let [ctx {:address-file "\nvoter_address,expected_polling_location\n\n1,2\n\n"}
+          parsed-ctx (validate-and-parse-file* ctx)]
+      (is (= 1 (count (:addresses parsed-ctx))))
+      (is (= {:address "1"
+              :expected-polling-location "2"}
+             (-> parsed-ctx :addresses first))))))
+
 (deftest ->result-row-test
   (testing "Partial result"
     (is (= ["foo" "bar" "" ""] (->result-row {:address "foo" :expected-polling-location "bar"}))))
