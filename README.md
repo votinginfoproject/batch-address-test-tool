@@ -2,6 +2,8 @@
 
 A Clojure library that tests addresses for the Voting Information Project.
 
+TODO: fill in more information about project
+
 ## Usage
 
 Run with `lein run`
