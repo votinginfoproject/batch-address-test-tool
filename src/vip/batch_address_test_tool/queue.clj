@@ -24,7 +24,7 @@
        (handler-fn message))
       (catch Exception ex
         (log/error "Error consuming message" (String. payload))
-        (log/error (.getMessage ex))))))
+        (log/error ex)))))
 
 (defn setup-consumer
   "Sets up the handler function to process messages on the

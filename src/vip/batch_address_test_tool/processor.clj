@@ -28,27 +28,37 @@
     (catch Exception ex
       (assoc ctx :error ex))))
 
+(defn ->exception-with-line
+  [msg line-num]
+  (Exception. (str msg " on line number "(+ 1 line-num))))
+
 (defn validate-header-row
   "Validates the header row of the input file to confirm 2 headers with
    expected names"
-  [header-row]
+  [[line-num header-row]]
   (if (not= (count header-row) 2)
-    (throw (Exception. "Incorrect number of headers, expected 2"))
+    (throw (->exception-with-line "Incorrect number of headers, expected 2"
+                                  line-num))
     (if (not= (first header-row) "voter_address")
-      (throw (Exception. "Expected first header item to be \"voter_address\""))
+      (throw (->exception-with-line
+              "Expected first header item to be \"voter_address\""
+              line-num))
       (if (not= (second header-row) "expected_polling_location")
-        (throw (Exception. "Expected second header item to be \"expected_polling_location\""))))))
+        (throw (->exception-with-line
+                "Expected second header item to be \"expected_polling_location\""
+                line-num))))))
 
 (defn validate-and-parse-row
   "Validates number of elements in a row and returns row values parsed into
    a map"
-  [row]
+  [[line-num row]]
   (if (not= (count row) 2)
-    (throw (Exception. "Incorrect number of row elements, expected 2"))
+    (throw (->exception-with-line "Incorrect number of row elements, expected 2"
+                                  line-num))
     {:address (first row)
      :expected-polling-location (second row)}))
 
-(defn not-blank-row? [row]
+(defn not-blank-row? [[line-num row]]
   (not (and (= 1 (count row))
             (str/blank? (first row)))))
 
@@ -57,12 +67,15 @@
    validate-and-parse-row"
   [ctx]
   (try
-    (let [rows (take 301 (filter not-blank-row?
-                                 (csv/read-csv (:address-file ctx))))]
+    (let [csv (csv/read-csv (:address-file ctx))
+          indexed-rows (map-indexed (fn [idx rw] [idx rw])
+                                    (take 301 csv))
+          rows (filter not-blank-row? indexed-rows)]
       (validate-header-row (first rows))
       (assoc ctx :addresses
              (doall (map validate-and-parse-row (rest rows)))))
     (catch Exception ex
+      (log/error ex)
       (assoc ctx :error ex))))
 
 (def validate-and-parse-file (->pass-through validate-and-parse-file*))
