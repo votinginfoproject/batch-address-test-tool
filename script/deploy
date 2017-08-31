@@ -14,6 +14,9 @@ if [[ ! -e ${SERVICE}@.service ]]; then
   exit 1
 fi
 
+eval "$(ssh-agent -s)"
+ssh-add
+
 echo "--- sending fleet service file"
 fleetctl --strict-host-key-checking=false destroy ${SERVICE}@.service || true
 fleetctl --strict-host-key-checking=false submit ${SERVICE}@.service
