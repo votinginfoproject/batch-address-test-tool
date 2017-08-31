@@ -14,19 +14,6 @@ if [[ ! -e ${SERVICE}@.service ]]; then
   exit 1
 fi
 
-if hash buildkite-agent 2>/dev/null ; then
-  echo "--- deploying from coreos node"
-else
-  if [[ ! -e $PEM_FILE ]]; then
-    echo "Please provide a .pem file for the fleet"
-    exit 1
-  fi
-
-  echo "--- setting up SSH"
-  eval "$(ssh-agent -s)"
-  ssh-add $PEM_FILE
-fi
-
 echo "--- sending fleet service file"
 fleetctl --strict-host-key-checking=false destroy ${SERVICE}@.service || true
 fleetctl --strict-host-key-checking=false submit ${SERVICE}@.service
