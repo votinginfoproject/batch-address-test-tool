@@ -115,7 +115,7 @@
 (defn prepare-response*
   "Saves output file to s3 and generates data for response message"
   [ctx]
-  (let [group (->group (get-in ctx [:input "groupName"]))
+  (let [fips (->group (get-in ctx [:input "fipsCode"]))
         bucket-name (get-in ctx [:input "bucketName"])
         output-file-name (str/join "/" [group "output" "results.csv"])
         output-file (->results-file ctx)]
@@ -132,14 +132,14 @@
   (if (contains? ctx :error)
     (q/publish-to-queue {"status" "error"
                          "error" {"message" (.getMessage (:error ctx))}
-                         "groupName" (get-in ctx [:input "groupName"])
+                         "fipsCode" (get-in ctx [:input "fipsCode"])
                          "transactionId" (get-in ctx [:input "transactionId"])}
                         "batch-address.file.complete")
     (let [response-message {"fileName" (get-in ctx [:results :file-name])
                             "bucketName" (get-in ctx [:results :bucket-name])
                             "status" "ok"
                             "url" (get-in ctx [:results :url])
-                            "groupName" (get-in ctx [:input "groupName"])
+                            "fipsCode" (get-in ctx [:input "fipsCode"])
                             "transactionId" (get-in ctx [:input "transactionId"])}]
       (q/publish-to-queue response-message "batch-address.file.complete"))))
 
