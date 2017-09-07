@@ -14,14 +14,7 @@ if [[ ! -e ${SERVICE}@.service ]]; then
   exit 1
 fi
 
-if [[ ! -e $PEM_FILE ]]; then
-  echo "Please provide a .pem file for the fleet"
-  exit 1
-fi
-
-eval "$(ssh-agent -s)"
-ssh-add $PEM_FILE
-
+echo "--- sending fleet service file"
 fleetctl --strict-host-key-checking=false destroy ${SERVICE}@.service || true
 fleetctl --strict-host-key-checking=false submit ${SERVICE}@.service
 
