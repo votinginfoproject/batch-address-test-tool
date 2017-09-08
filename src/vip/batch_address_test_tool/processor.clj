@@ -83,8 +83,9 @@
 (defn retrieve-polling-locations*
   [ctx]
   (let [addresses (:addresses ctx)
-        polling-locations (map #(civic-info/address->polling-location (:address %)) addresses)
-        merged (map #(assoc %1 :api-result %2) addresses polling-locations)]
+        polling-location-info (map #(civic-info/address->polling-location-info
+                                     (:address %)) addresses)
+        merged (map #(merge %1 %2) addresses polling-location-info)]
     (assoc ctx :addresses merged)))
 
 (def retrieve-polling-locations (->pass-through retrieve-polling-locations*))
@@ -115,12 +116,12 @@
 (defn ->result-row
   "Creates a vector of values from result suitable for csv writing"
   [result]
-  (map #(get result % "") [:address :expected-polling-location :api-result :match]))
+  (map #(get result % "") [:address :expected-polling-location :api-result :polling-location-count :match]))
 
 (defn ->results-file
   "Creates the csv data and writes it to a temp file"
   [ctx]
-  (let [header [["voter_address" "expected_polling_location" "api_result" "status"]]
+  (let [header [["voter_address" "expected_polling_location" "api_result" "polling_location_count" "status"]]
         addresses (:addresses ctx)
         sorted (reverse (sort-by :score addresses))
         result-rows (map ->result-row sorted)
