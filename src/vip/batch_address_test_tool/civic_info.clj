@@ -14,7 +14,7 @@
                    (:state address) " "
                    (:zip address)))))
 
-(defn address->polling-location
+(defn address->polling-location-info
   [address]
   (let [api-key (config [:civic-info-api-key])
         url "https://www.googleapis.com/civicinfo/v2/voterinfo"
@@ -26,4 +26,5 @@
         response (client/get url opts)]
       (log/debug "queried civic info API with address" (pr-str address)
                  "and received status code" (:status response))
-      (response->polling-location response)))
+      {:api-result  (response->polling-location response)
+       :polling-location-count (-> response :body :pollingLocations count)}))
