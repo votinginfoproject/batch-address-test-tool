@@ -30,6 +30,7 @@
   "Sets up the handler function to process messages on the
    batch-address.file.submit channel"
   [ch handler-fn]
+  (lq/declare ch "batch-address.file.submit" {:durable true :auto-delete false})
   (lcons/subscribe ch "batch-address.file.submit"
                  (->handler handler-fn)
                  {:auto-ack true}))

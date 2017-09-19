@@ -51,9 +51,10 @@
 
 (deftest ->result-row-test
   (testing "Partial result"
-    (is (= ["foo" "bar" "" ""] (->result-row {:address "foo" :expected-polling-location "bar"}))))
+    (is (= ["foo" "bar" "" "" ""] (->result-row {:address "foo" :expected-polling-location "bar"}))))
   (testing "Full result"
-    (is (= ["foo" "bar" "baz" "blee"] (->result-row {:address "foo"
-                                                     :expected-polling-location "bar"
-                                                     :api-result "baz"
-                                                     :match "blee"})))))
+    (is (= ["foo" "bar" "baz" 1 "blee"] (->result-row {:address "foo"
+                                                       :expected-polling-location "bar"
+                                                       :api-result "baz"
+                                                       :polling-location-count 1
+                                                       :match "blee"})))))

@@ -20,12 +20,14 @@
 (defn retrieve-file
   "Retrieves the file for processing from s3"
   [ctx]
+  (log/debug "retrieve-file: " (pr-str ctx))
   (try
     (let [file-name   (get-in ctx [:input "fileName"])
           bucket-name (get-in ctx [:input "bucketName"])
           file        (cloud-store/fetch-file bucket-name file-name)]
       (assoc ctx :address-file file))
     (catch Exception ex
+      (log/error ex)
       (assoc ctx :error ex))))
 
 (defn ->exception-with-line
@@ -66,6 +68,7 @@
   "Calls validate-header-row on first row in file and maps remaining rows with
    validate-and-parse-row"
   [ctx]
+  (log/debug "validate-and-parse-file: " (pr-str ctx))
   (try
     (let [csv (csv/read-csv (:address-file ctx))
           indexed-rows (map-indexed (fn [idx rw] [idx rw])
@@ -82,15 +85,18 @@
 
 (defn retrieve-polling-locations*
   [ctx]
+  (log/debug "retrieve-polling-locations: " (pr-str ctx))
   (let [addresses (:addresses ctx)
-        polling-locations (map #(civic-info/address->polling-location (:address %)) addresses)
-        merged (map #(assoc %1 :api-result %2) addresses polling-locations)]
+        polling-location-info (map #(civic-info/address->polling-location-info
+                                     (:address %)) addresses)
+        merged (map #(merge %1 %2) addresses polling-location-info)]
     (assoc ctx :addresses merged)))
 
 (def retrieve-polling-locations (->pass-through retrieve-polling-locations*))
 
 (defn calculate-scores*
   [ctx]
+  (log/debug "calculate-scores: " (pr-str ctx))
   (let [addresses (:addresses ctx)
         scores (map match/calculate-score addresses)
         merged (map #(assoc %1 :score %2) addresses scores)]
@@ -100,6 +106,7 @@
 
 (defn calculate-matches*
   [ctx]
+  (log/debug "calculate-matches: " (pr-str ctx))
   (let [addresses (:addresses ctx)
         matches (map match/calculate-match addresses)
         merged (map #(assoc %1 :match %2) addresses matches)]
@@ -115,12 +122,12 @@
 (defn ->result-row
   "Creates a vector of values from result suitable for csv writing"
   [result]
-  (map #(get result % "") [:address :expected-polling-location :api-result :match]))
+  (map #(get result % "") [:address :expected-polling-location :api-result :polling-location-count :match]))
 
 (defn ->results-file
   "Creates the csv data and writes it to a temp file"
   [ctx]
-  (let [header [["voter_address" "expected_polling_location" "api_result" "status"]]
+  (let [header [["voter_address" "expected_polling_location" "api_result" "polling_location_count" "status"]]
         addresses (:addresses ctx)
         sorted (reverse (sort-by :score addresses))
         result-rows (map ->result-row sorted)
@@ -133,6 +140,7 @@
 (defn prepare-response*
   "Saves output file to s3 and generates data for response message"
   [ctx]
+  (log/debug "prepare-response: " (pr-str ctx))
   (let [group (->group (get-in ctx [:input "groupName"]))
         bucket-name (get-in ctx [:input "bucketName"])
         output-file-name (str/join "/" [group "output" "results.csv"])
@@ -147,12 +155,15 @@
 (defn respond
   "Publishes response message to output queue"
   [ctx]
-  (if (contains? ctx :error)
-    (q/publish-to-queue {"status" "error"
-                         "error" {"message" (.getMessage (:error ctx))}
-                         "groupName" (get-in ctx [:input "groupName"])
-                         "transactionId" (get-in ctx [:input "transactionId"])}
-                        "batch-address.file.complete")
+  (log/debug "respond:" (pr-str ctx))
+  (if-let [error (:error ctx)]
+    (do
+      (log/error "Error processing batch addresses: " (pr-str error))
+      (q/publish-to-queue {"status" "error"
+                           "error" {"message" (.getMessage error)}
+                           "groupName" (get-in ctx [:input "groupName"])
+                           "transactionId" (get-in ctx [:input "transactionId"])}
+                          "batch-address.file.complete"))
     (let [response-message {"fileName" (get-in ctx [:results :file-name])
                             "bucketName" (get-in ctx [:results :bucket-name])
                             "status" "ok"
@@ -167,6 +178,7 @@
    and puts output message on queue"
   [message]
   (let [ctx {:input message}]
+    (log/debug "process-message: " (pr-str ctx))
     (-> ctx
         retrieve-file
         validate-and-parse-file
