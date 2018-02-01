@@ -114,11 +114,6 @@
 
 (def calculate-matches (->pass-through calculate-matches*))
 
-(defn ->group
-  "Extracts group number from the file name"
-  [file-name]
-  (first (str/split file-name #"/")))
-
 (defn ->result-row
   "Creates a vector of values from result suitable for csv writing"
   [result]
@@ -141,9 +136,9 @@
   "Saves output file to s3 and generates data for response message"
   [ctx]
   (log/debug "prepare-response: " (pr-str ctx))
-  (let [group (->group (get-in ctx [:input "groupName"]))
+  (let [fips-code (get-in ctx [:input "fipsCode"])
         bucket-name (get-in ctx [:input "bucketName"])
-        output-file-name (str/join "/" [group "output" "results.csv"])
+        output-file-name (str/join "/" [fips-code "output" "results.csv"])
         output-file (->results-file ctx)]
     (cloud-store/save-file bucket-name output-file-name output-file)
     (assoc ctx :results {:file-name output-file-name
@@ -161,14 +156,14 @@
       (log/error "Error processing batch addresses: " (pr-str error))
       (q/publish-to-queue {"status" "error"
                            "error" {"message" (.getMessage error)}
-                           "groupName" (get-in ctx [:input "groupName"])
+                           "fipsCode" (get-in ctx [:input "fipsCode"])
                            "transactionId" (get-in ctx [:input "transactionId"])}
                           "batch-address.file.complete"))
     (let [response-message {"fileName" (get-in ctx [:results :file-name])
                             "bucketName" (get-in ctx [:results :bucket-name])
                             "status" "ok"
                             "url" (get-in ctx [:results :url])
-                            "groupName" (get-in ctx [:input "groupName"])
+                            "fipsCode" (get-in ctx [:input "fipsCode"])
                             "transactionId" (get-in ctx [:input "transactionId"])}]
       (q/publish-to-queue response-message "batch-address.file.complete"))))
 
