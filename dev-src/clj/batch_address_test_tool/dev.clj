@@ -6,6 +6,7 @@
   (let [ctx {:address-file-contents (slurp file-path)}]
     (try
       (-> ctx
+          p/cleanup-source-file
           p/validate-and-parse-file
           clojure.pprint/pprint)
       (catch Exception ex

@@ -40,9 +40,21 @@
       (catch Exception ex
         (is (= 0 1) "Unexpected exception validating a good address row")))))
 
+(deftest cleanup-source-file*-test
+  (testing "leaves a good file content alone"
+    (let [ctx {:address-file-contents "voter_address,expected_polling_location\n1,2\n"}
+          cleaned-ctx (cleanup-source-file* ctx)]
+      (is (= "voter_address,expected_polling_location\n1,2\n"
+             (:address-file-contents cleaned-ctx)))))
+  (testing "cleans up pesky windows line endings"
+    (let [ctx {:address-file-contents "voter_address,expected_polling_location\r\n1,2\r\n"}
+          cleaned-ctx (cleanup-source-file* ctx)]
+      (is (= "voter_address,expected_polling_location\n1,2\n"
+             (:address-file-contents cleaned-ctx))))))
+
 (deftest validate-and-parse-file*-test
   (testing "skips empty rows, even at top of file"
-    (let [ctx {:address-file "\nvoter_address,expected_polling_location\n\n1,2\n\n"}
+    (let [ctx {:address-file-contents "\nvoter_address,expected_polling_location\n\n1,2\n\n"}
           parsed-ctx (validate-and-parse-file* ctx)]
       (is (= 1 (count (:addresses parsed-ctx))))
       (is (= {:address "1"
