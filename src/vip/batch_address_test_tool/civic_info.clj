@@ -19,7 +19,9 @@
   (let [api-key (config [:civic-info-api-key])
         url "https://www.googleapis.com/civicinfo/v2/voterinfo"
         params {"address" address
-                "key" api-key}
+                "key" api-key
+                "officialData" true
+                "productionDataOnly" false}
         opts {:query-params params
               :as :json
               :throw-exceptions false}
