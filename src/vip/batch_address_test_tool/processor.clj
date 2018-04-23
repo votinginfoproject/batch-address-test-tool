@@ -1,6 +1,7 @@
 (ns vip.batch-address-test-tool.processor
   (:require [clojure.tools.logging :as log]
             [clojure.data.csv :as csv]
+            [clojure.string :as str]
             [vip.batch-address-test-tool.queue :as q]
             [vip.batch-address-test-tool.cloud-store :as cloud-store]
             [clojure.string :as str]
@@ -25,7 +26,7 @@
     (let [file-name   (get-in ctx [:input "fileName"])
           bucket-name (get-in ctx [:input "bucketName"])
           file        (cloud-store/fetch-file bucket-name file-name)]
-      (assoc ctx :address-file file))
+      (assoc ctx :address-file-contents file))
     (catch Exception ex
       (log/error ex)
       (assoc ctx :error ex))))
@@ -43,7 +44,8 @@
                                   line-num))
     (if (not= (first header-row) "voter_address")
       (throw (->exception-with-line
-              "Expected first header item to be \"voter_address\""
+              (str "Expected first header item to be \"voter_address\", was \""
+                   (first header-row) "\"")
               line-num))
       (if (not= (second header-row) "expected_polling_location")
         (throw (->exception-with-line
@@ -64,13 +66,28 @@
   (not (and (= 1 (count row))
             (str/blank? (first row)))))
 
+(defn cleanup-source-file*
+  "Step for cleanup of source file contents, currently only
+   replaces Windows weird line endings, but could add more
+   steps in the future."
+  [ctx]
+  (try
+    (let [original-csv (:address-file-contents ctx)
+          fixed-csv (str/replace original-csv #"\r\n" "\n")]
+      (assoc ctx :address-file-contents fixed-csv))
+    (catch Exception ex
+      (log/error ex)
+      (assoc ctx :error ex))))
+
+(def cleanup-source-file (->pass-through cleanup-source-file*))
+
 (defn validate-and-parse-file*
   "Calls validate-header-row on first row in file and maps remaining rows with
    validate-and-parse-row"
   [ctx]
   (log/debug "validate-and-parse-file: " (pr-str ctx))
   (try
-    (let [csv (csv/read-csv (:address-file ctx))
+    (let [csv (csv/read-csv (:address-file-contents ctx))
           indexed-rows (map-indexed (fn [idx rw] [idx rw])
                                     (take 301 csv))
           rows (filter not-blank-row? indexed-rows)]
@@ -176,6 +193,7 @@
     (log/debug "process-message: " (pr-str ctx))
     (-> ctx
         retrieve-file
+        cleanup-source-file
         validate-and-parse-file
         retrieve-polling-locations
         calculate-scores

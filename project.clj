@@ -13,7 +13,8 @@
                  [org.clojure/data.json "0.2.6"]
                  [clj-fuzzy "0.4.0"]]
   :plugins [[com.pupeno/jar-copier "0.4.0"]]
-  :profiles {:dev {:resource-paths ["dev-resources"]}}
+  :profiles {:dev {:resource-paths ["dev-resources"]
+                   :source-paths ["dev-src/clj"]}}
   :java-agents [[com.newrelic.agent.java/newrelic-agent "3.25.0"]]
   :jar-copier {:java-agents true
                :destination "resources/jars"}
