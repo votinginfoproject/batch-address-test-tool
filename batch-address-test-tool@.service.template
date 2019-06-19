@@ -4,8 +4,6 @@ After=docker.service
 Requires=docker.service
 After=consul@%i.service
 Wants=consul@%i.service
-After=rabbitmq@%i.service
-Requires=rabbitmq@%i.service
 
 [Service]
 EnvironmentFile=/etc/environment
@@ -23,10 +21,13 @@ ExecStartPre=-/usr/bin/docker rm ${CONTAINER}
 ExecStartPre=/usr/bin/docker pull ${DOCKER_IMAGE}
 
 ExecStart=/bin/bash -c 'docker run --name ${CONTAINER} \
-  --link rabbitmq:rabbitmq \
-  --env VIP_BA_RABBITMQ_EXCHANGE=$(curl -s http://${COREOS_PRIVATE_IPV4}:8500/v1/kv/data-suite/rabbitmq/exchange?raw) \
   --env AWS_ACCESS_KEY_ID=$(curl -s http://${COREOS_PRIVATE_IPV4}:8500/v1/kv/data-suite/aws/access-key?raw) \
   --env AWS_SECRET_ACCESS_KEY=$(curl -s http://${COREOS_PRIVATE_IPV4}:8500/v1/kv/data-suite/aws/secret-key?raw) \
+  --env AWS_SQS_REGION=$(curl -s http://${COREOS_PRIVATE_IPV4}:8500/v1/kv/data-suite/sqs/region?raw) \
+  --env AWS_SQS_ADDRESS_TEST_REQUEST=$(curl -s http://${COREOS_PRIVATE_IPV4}:8500/v1/kv/data-suite/sqs/address-test/request-url?raw) \
+  --env AWS_SNS_REGION=$(curl -s http://${COREOS_PRIVATE_IPV4}:8500/v1/kv/data-suite/sns/region?raw) \
+  --env AWS_SNS_ADDRESS_TEST_SUCCESS=$(curl -s http://${COREOS_PRIVATE_IPV4}:8500/v1/kv/data-suite/sns/address-test/success-topic-arn?raw) \
+  --env AWS_SNS_ADDRESS_TEST_FAILURE=$(curl -s http://${COREOS_PRIVATE_IPV4}:8500/v1/kv/data-suite/sns/address-test/failure-topic-arn?raw) \
   --env GOOGLE_CIVIC_INFO_API_KEY=$(curl -s http://${COREOS_PRIVATE_IPV4}:8500/v1/kv/data-suite/google-civic/api-key?raw) \
   --publish 10000 \
   ${DOCKER_IMAGE}'

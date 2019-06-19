@@ -1,82 +1,76 @@
 (ns vip.batch-address-test-tool.queue
   (:require [clojure.tools.logging :as log]
-            [langohr.core :as rmq]
-            [langohr.channel :as lch]
-            [langohr.exchange :as le]
-            [langohr.queue :as lq]
-            [langohr.basic :as lb]
-            [langohr.consumers :as lcons]
             [clojure.edn :as edn]
-            [turbovote.resource-config :refer [config]]))
+            [cognitect.aws.client.api :as aws]
+            [cognitect.aws.credentials :as credentials]
+            [squishy.core :as squishy]
+            [turbovote.resource-config :refer [config]])
+  (:import [com.amazonaws.regions Region Regions]))
 
-(def rabbit-connection (atom nil))
-(def rabbit-channel (atom nil))
+(defn string->edn [handler]
+  (fn [message]
+    (handler (edn/read-string (:body message)))))
 
-(defn ->handler
-  "Creates a function that can take a rabbit message, parse it as edn, and
-   send it to the handler function"
-  [handler-fn]
-  (fn [ch metadata ^bytes payload]
-    (try
-      (let [message (-> (String. payload)
-                        edn/read-string)]
-       (log/debug "Received a message:" (pr-str message))
-       (handler-fn message))
-      (catch Exception ex
-        (log/error "Error consuming message" (String. payload))
-        (log/error ex)))))
+(defn start-consumer
+  "Start an sqs consumer that pulls messages from the request-queue, converts
+  them to EDN, and sends them to the handler function."
+  ([handler]
+   (start-consumer (config [:aws :creds :access-key])
+                   (config [:aws :creds :secret-key])
+                   (config [:aws :sqs :region])
+                   (config [:aws :sqs :address-test-request])
+                   (config [:aws :sqs :address-test-request-failure])
+                   handler))
+  ([access-key secret-key region request-queue failure-queue handler]
+   (let [java-region (-> region Regions/fromName Region/getRegion)
+         creds {:access-key access-key
+                :access-secret secret-key
+                :region java-region}
+         edn-handler (string->edn handler)]
+     (squishy/consume-messages creds request-queue failure-queue edn-handler))))
 
-(defn setup-consumer
-  "Sets up the handler function to process messages on the
-   batch-address.file.submit channel"
-  [ch handler-fn]
-  (lq/declare ch "batch-address.file.submit" {:durable true :auto-delete false})
-  (lcons/subscribe ch "batch-address.file.submit"
-                 (->handler handler-fn)
-                 {:auto-ack true}))
+(defn stop-consumer [consumer-id]
+  (squishy/stop-consumer consumer-id))
 
-(defn initialize
-  "Connects to rabbit and sets up handler function to consume messages"
-  [handler-fn]
-  (let [max-retries 5]
-    (loop [attempt 1]
-      (try
-        (reset! rabbit-connection
-                (rmq/connect (or (config [:rabbitmq :connection])
-                                 {})))
-        (log/info "RabbitMQ connected.")
-        (catch Throwable t
-          (log/warn "RabbitMQ not available:" (.getMessage t) "attempt:" attempt)))
-      (when (nil? @rabbit-connection)
-        (if (< attempt max-retries)
-          (do (Thread/sleep (* attempt 1000))
-              (recur (inc attempt)))
-          (do (log/error "Connecting to RabbitMQ failed. Bailing.")
-            (throw (ex-info "Connecting to RabbitMQ failed" {:attempts attempt})))))))
-  (reset! rabbit-channel
-          (let [ch (lch/open @rabbit-connection)]
-            (le/topic ch (config [:rabbitmq :exchange]) {:durable false :auto-delete true})
-            (log/info "RabbitMQ topic set.")
-            (setup-consumer ch handler-fn)
-            ch)))
+;; Much/most of this is copied from `data-processor` verbatim, and if we had
+;; a better config story here, we could make it into a library of some kind
 
-(defn publish-to-queue
-  "Sends the payload to the given queue, printing it as a EDN string"
-  [payload queue-name]
-  (log/debug (pr-str payload) "->" queue-name)
-  (lb/publish @rabbit-channel
-              ""
-              queue-name
-              (pr-str payload)
-              {:content-type "application/edn"}))
+(defn sns-client
+  ([]
+   (sns-client (config [:aws :creds :access-key])
+               (config [:aws :creds :secret-key])
+               (config [:aws :sns :region])))
+  ([access-key secret-key region]
+   (aws/client
+    {:api                  :sns
+     :region               region
+     :credentials-provider (credentials/basic-credentials-provider
+                            {:access-key-id     access-key
+                             :secret-access-key secret-key})})))
 
-(defn publish-event
-  "Publish a message to the batch-address topic exchange on the given
-  routing-key. The payload will be converted to EDN."
-  [payload routing-key]
-  (log/debug (pr-str payload) "->" routing-key)
-  (lb/publish @rabbit-channel
-              (config [:rabbitmq :exchange])
-              routing-key
-              (pr-str payload)
-              {:content-type "application/edn" :type "batch-address.event"}))
+(defn- publish
+  [sns-client topic payload]
+  (aws/invoke sns-client {:op :Publish
+                          :request {:TopicArn topic
+                                    :Message (pr-str payload)}}))
+
+(defn publish-success
+  "Publish a successful feed processing message to the topic."
+  ([payload]
+   (publish-success (sns-client)
+                    (config [:aws :sns :address-test-success-arn])
+                    payload))
+  ([sns-client topic payload]
+   (log/debug "publishing success to " topic " with payload " (pr-str payload))
+   (publish sns-client topic payload)))
+
+(defn publish-failure
+  "Publish a failed feed processing message to the topic."
+  ([payload]
+   (publish-failure (sns-client)
+                    (config [:aws :sns :address-failure-failure-arn])
+                    payload))
+  ([sns-client topic payload]
+   (log/debug "publishing failure to " topic " with payload " (pr-str payload))
+   (publish sns-client topic payload)))
+
