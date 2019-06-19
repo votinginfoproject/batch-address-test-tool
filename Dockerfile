@@ -11,4 +11,4 @@ COPY . /usr/src/batch-address-test-tool
 RUN lein test
 RUN mv "$(lein uberjar | sed -n 's/^Created \(.*standalone\.jar\)/\1/p')" batch-address-test-tool-standalone.jar
 
-CMD java -Xmx2g -Dnewrelic.environment=$NEW_RELIC_ENVIRONMENT -javaagent:resources/jars/com.newrelic.agent.java/newrelic-agent.jar $YOURKIT_AGENT_OPTION -jar batch-address-test-tool-standalone.jar
+CMD java -Xmx2g $YOURKIT_AGENT_OPTION -jar batch-address-test-tool-standalone.jar
