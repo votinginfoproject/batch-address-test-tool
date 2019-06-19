@@ -22,7 +22,7 @@
                    (config [:aws :sqs :address-test-request-failure])
                    handler))
   ([access-key secret-key region request-queue failure-queue handler]
-   (let [java-region (-> region Regions/fromName Region/getRegion)
+   (let [java-region (-> region Regions/valueOf Region/getRegion)
          creds {:access-key access-key
                 :access-secret secret-key
                 :region java-region}
