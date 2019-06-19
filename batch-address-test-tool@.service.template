@@ -25,6 +25,7 @@ ExecStart=/bin/bash -c 'docker run --name ${CONTAINER} \
   --env AWS_SECRET_KEY=$(curl -s http://${COREOS_PRIVATE_IPV4}:8500/v1/kv/data-suite/aws/secret-key?raw) \
   --env AWS_SQS_REGION=$(curl -s http://${COREOS_PRIVATE_IPV4}:8500/v1/kv/data-suite/sqs/region?raw) \
   --env AWS_SQS_ADDRESS_TEST_REQUEST=$(curl -s http://${COREOS_PRIVATE_IPV4}:8500/v1/kv/data-suite/sqs/address-test/request-url?raw) \
+  --env AWS_SQS_ADDRESS_TEST_REQUEST_FAILURE=$(curl -s http://${COREOS_PRIVATE_IPV4}:8500/v1/kv/data-suite/sqs/address-test/request-failure-url?raw) \
   --env AWS_SNS_REGION=$(curl -s http://${COREOS_PRIVATE_IPV4}:8500/v1/kv/data-suite/sns/region?raw) \
   --env AWS_SNS_ADDRESS_TEST_SUCCESS=$(curl -s http://${COREOS_PRIVATE_IPV4}:8500/v1/kv/data-suite/sns/address-test/success-topic-arn?raw) \
   --env AWS_SNS_ADDRESS_TEST_FAILURE=$(curl -s http://${COREOS_PRIVATE_IPV4}:8500/v1/kv/data-suite/sns/address-test/failure-topic-arn?raw) \

@@ -1,6 +1,7 @@
 (ns vip.batch-address-test-tool.queue
-  (:require [clojure.tools.logging :as log]
-            [clojure.edn :as edn]
+  (:require [clojure.edn :as edn]
+            [clojure.string :as str]
+            [clojure.tools.logging :as log]
             [cognitect.aws.client.api :as aws]
             [cognitect.aws.credentials :as credentials]
             [squishy.core :as squishy]
@@ -11,16 +12,28 @@
   (fn [message]
     (handler (edn/read-string (:body message)))))
 
+(defn arn->queue-name
+  "Because we share configuration with different SQS libraries, some libraries
+   want the ARN and others (like squishy) want only the queue name. Rather than
+   maintain multiple configuration values, this function takes an ARN format
+   and returns just the queue name so squishy can be happy. The queue name is
+   the last thing after a forward slash."
+  [arn]
+  (-> arn
+      (str/split #"\/")
+      last))
+
 (defn start-consumer
   "Start an sqs consumer that pulls messages from the request-queue, converts
   them to EDN, and sends them to the handler function."
   ([handler]
-   (start-consumer (config [:aws :creds :access-key])
-                   (config [:aws :creds :secret-key])
-                   (config [:aws :sqs :region])
-                   (config [:aws :sqs :address-test-request])
-                   (config [:aws :sqs :address-test-request-failure])
-                   handler))
+   (start-consumer
+    (config [:aws :creds :access-key])
+    (config [:aws :creds :secret-key])
+    (config [:aws :sqs :region])
+    (arn->queue-name (config [:aws :sqs :address-test-request]))
+    (arn->queue-name (config [:aws :sqs :address-test-request-failure]))
+    handler))
   ([access-key secret-key region request-queue failure-queue handler]
    (let [java-region (-> region Regions/valueOf Region/getRegion)
          creds {:access-key access-key
