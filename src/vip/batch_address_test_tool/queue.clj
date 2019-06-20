@@ -64,9 +64,11 @@
 
 (defn- publish
   [sns-client topic payload]
-  (aws/invoke sns-client {:op :Publish
-                          :request {:TopicArn topic
-                                    :Message (pr-str payload)}}))
+  (let [invocation (aws/invoke sns-client
+                               {:op :Publish
+                                :request {:TopicArn topic
+                                          :Message (pr-str payload)}})]
+    (log/info "Publish request and results " (meta invocation))))
 
 (defn publish-success
   "Publish a successful feed processing message to the topic."
