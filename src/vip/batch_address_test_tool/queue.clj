@@ -40,6 +40,7 @@
                 :access-secret secret-key
                 :region java-region}
          edn-handler (string->edn handler)]
+     (log/info "Starting consumer on " request-queue " with cred " (pr-str creds))
      (squishy/consume-messages creds request-queue failure-queue edn-handler))))
 
 (defn stop-consumer [consumer-id]

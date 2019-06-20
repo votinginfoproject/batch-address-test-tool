@@ -3,7 +3,7 @@
        :sns {:region #resource-config/env "AWS_SNS_REGION"
              :address-test-success-arn #resource-config/env "AWS_SNS_ADDRESS_TEST_SUCCESS"
              :address-test-failure-arn #resource-config/env "AWS_SNS_ADDRESS_TEST_FAILURE"}
-       :sqs {:region #aws/region #resource-config/env "AWS_SQS_REGION"
+       :sqs {:region #resource-config/env "AWS_SQS_REGION"
              :address-test-request #resource-config/env "AWS_SQS_ADDRESS_TEST_REQUEST"
              :address-test-request-failure #resource-config/env "AWS_SQS_ADDRESS_TEST_REQUEST_FAILURE"}
        :s3 {:region #resource-config/env "AWS_S3_REGION"}}
