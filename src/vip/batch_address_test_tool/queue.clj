@@ -75,7 +75,7 @@
                     (config [:aws :sns :address-test-success-arn])
                     payload))
   ([sns-client topic payload]
-   (log/debug "publishing success to " topic " with payload " (pr-str payload))
+   (log/info "publishing success to " topic " with payload " (pr-str payload))
    (publish sns-client topic payload)))
 
 (defn publish-failure
@@ -85,6 +85,6 @@
                     (config [:aws :sns :address-failure-failure-arn])
                     payload))
   ([sns-client topic payload]
-   (log/debug "publishing failure to " topic " with payload " (pr-str payload))
+   (log/info "publishing failure to " topic " with payload " (pr-str payload))
    (publish sns-client topic payload)))
 
