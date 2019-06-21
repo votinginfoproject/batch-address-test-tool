@@ -1,5 +1,6 @@
 (ns vip.batch-address-test-tool.queue
   (:require [clojure.edn :as edn]
+            [clojure.data.json :as json]
             [clojure.string :as str]
             [clojure.tools.logging :as log]
             [cognitect.aws.client.api :as aws]
@@ -64,11 +65,9 @@
 
 (defn- publish
   [sns-client topic payload]
-  (let [invocation (aws/invoke sns-client
-                               {:op :Publish
-                                :request {:TopicArn topic
-                                          :Message (pr-str payload)}})]
-    (log/info "Publish request and results " (meta invocation))))
+  (aws/invoke sns-client {:op :Publish
+                          :request {:TopicArn topic
+                                    :Message payload}}))
 
 (defn publish-success
   "Publish a successful feed processing message to the topic."
@@ -77,8 +76,9 @@
                     (config [:aws :sns :address-test-success-arn])
                     payload))
   ([sns-client topic payload]
-   (log/info "publishing success to " topic " with payload " (pr-str payload))
-   (publish sns-client topic payload)))
+   (let [json-payload (json/write-str payload)]
+     (log/info "publishing success to " topic " with payload " json-payload)
+     (publish sns-client topic json-payload))))
 
 (defn publish-failure
   "Publish a failed feed processing message to the topic."
@@ -87,6 +87,7 @@
                     (config [:aws :sns :address-failure-failure-arn])
                     payload))
   ([sns-client topic payload]
-   (log/info "publishing failure to " topic " with payload " (pr-str payload))
-   (publish sns-client topic payload)))
+   (let [json-payload (json/write-str payload)]
+     (log/info "publishing failure to " topic " with payload " json-payload)
+     (publish sns-client topic json-payload))))
 

@@ -3,6 +3,7 @@
   :dependencies [[org.clojure/clojure "1.10.1"]
                  [turbovote.resource-config "0.2.1"]
                  [org.clojure/tools.logging "0.5.0-alpha.1"]
+                 [org.clojure/data.json "0.2.6"]
                  [ch.qos.logback/logback-classic "1.2.3"]
                  [com.amazonaws/aws-java-sdk-core "1.11.571"]
                  [com.amazonaws/aws-java-sdk-s3 "1.11.571"]

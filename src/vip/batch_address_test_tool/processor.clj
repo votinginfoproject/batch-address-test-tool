@@ -169,16 +169,16 @@
   [ctx]
   (log/info "respond:" (pr-str ctx))
   (if-let [error (:error ctx)]
-    (q/publish-failure {"status" "error"
-                        "error" {"message" (.getMessage error)}
-                        "fipsCode" (get-in ctx [:input "fipsCode"])
-                        "transactionId" (get-in ctx [:input "transactionId"])})
-    (q/publish-success {"fileName" (get-in ctx [:results :file-name])
-                        "bucketName" (get-in ctx [:results :bucket-name])
-                        "status" "ok"
-                        "url" (get-in ctx [:results :url])
-                        "fipsCode" (get-in ctx [:input "fipsCode"])
-                        "transactionId" (get-in ctx [:input "transactionId"])})))
+    (q/publish-failure {:status "error"
+                        :error (.getMessage error)
+                        :fipsCode (get-in ctx [:input "fipsCode"])
+                        :transactionId (get-in ctx [:input "transactionId"])})
+    (q/publish-success {:fileName (get-in ctx [:results :file-name])
+                        :bucketName (get-in ctx [:results :bucket-name])
+                        :status "ok"
+                        :url (get-in ctx [:results :url])
+                        :fipsCode (get-in ctx [:input "fipsCode"])
+                        :transactionId (get-in ctx [:input "transactionId"])})))
 
 (defn process-message
   "Takes an incoming message, downloads the file, validates the contents,
