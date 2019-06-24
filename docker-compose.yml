@@ -5,11 +5,9 @@ services:
     environment:
       AWS_ACCESS_KEY: 
       AWS_SECRET_KEY: 
-      AWS_S3_REGION: us-east-1
-      AWS_SQS_REGION: us-east-1
+      AWS_REGION: us-east-1
       AWS_SQS_ADDRESS_TEST_REQUEST: "dev-address-test-request"
       AWS_SQS_ADDRESS_TEST_REQUEST_FAILURE: "dev-address-test-request-failure"
-      AWS_SNS_REGION: us-east-1
       AWS_SNS_ADDRESS_TEST_SUCCESS: 
       AWS_SNS_ADDRESS_TEST_FAILURE: 
       GOOGLE_CIVIC_INFO_API_KEY: 

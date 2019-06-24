@@ -18,7 +18,7 @@
   ([]
    (s3-client (config [:aws :creds :access-key])
               (config [:aws :creds :secret-key])
-              (config [:aws :s3 :region])))
+              (config [:aws :region])))
   ([access-key secret-key region]
    (aws/client
     {:api                  :s3
@@ -57,7 +57,7 @@
   ([]
    (java-client (config [:aws :creds :access-key])
                 (config [:aws :creds :secret-key])
-                (config [:aws :s3 :region])))
+                (config [:aws :region])))
   ([access-key secret-key region]
    (let [java-region (-> region Regions/fromName)
          creds (BasicAWSCredentials. access-key secret-key)

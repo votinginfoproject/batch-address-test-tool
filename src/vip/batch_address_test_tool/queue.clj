@@ -31,12 +31,12 @@
    (start-consumer
     (config [:aws :creds :access-key])
     (config [:aws :creds :secret-key])
-    (config [:aws :sqs :region])
+    (config [:aws :region])
     (arn->queue-name (config [:aws :sqs :address-test-request]))
     (arn->queue-name (config [:aws :sqs :address-test-request-failure]))
     handler))
   ([access-key secret-key region request-queue failure-queue handler]
-   (let [java-region (-> region Regions/valueOf Region/getRegion)
+   (let [java-region (-> region Regions/fromName Region/getRegion)
          creds {:access-key access-key
                 :access-secret secret-key
                 :region java-region}
@@ -54,7 +54,7 @@
   ([]
    (sns-client (config [:aws :creds :access-key])
                (config [:aws :creds :secret-key])
-               (config [:aws :sns :region])))
+               (config [:aws :region])))
   ([access-key secret-key region]
    (aws/client
     {:api                  :sns
