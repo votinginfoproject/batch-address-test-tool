@@ -12,7 +12,7 @@
                  [com.cognitect.aws/sqs "697.2.391.0"]
                  [com.cognitect.aws/s3 "722.2.468.0"]
                  [com.cognitect.aws/sns "718.2.444.0"]
-                 [democracyworks/squishy "3.0.2"]
+                 [democracyworks/squishy "3.1.0-SNAPSHOT"]
                  [org.clojure/data.csv "0.1.4"]
                  [clj-time "0.15.1"]
                  [clj-http "3.10.0"]
