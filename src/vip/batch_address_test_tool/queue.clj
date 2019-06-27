@@ -6,8 +6,7 @@
             [cognitect.aws.client.api :as aws]
             [cognitect.aws.credentials :as credentials]
             [squishy.core :as squishy]
-            [turbovote.resource-config :refer [config]])
-  (:import [com.amazonaws.regions Region Regions]))
+            [turbovote.resource-config :refer [config]]))
 
 (defn string->edn [handler]
   (fn [message]
@@ -36,10 +35,9 @@
     (arn->queue-name (config [:aws :sqs :address-test-request-failure]))
     handler))
   ([access-key secret-key region request-queue failure-queue handler]
-   (let [java-region (-> region Regions/fromName Region/getRegion)
-         creds {:access-key access-key
+   (let [creds {:access-key access-key
                 :access-secret secret-key
-                :region java-region}
+                :region region}
          edn-handler (string->edn handler)]
      (log/info "Starting consumer on " request-queue " with cred " (pr-str creds))
      (squishy/consume-messages creds request-queue failure-queue edn-handler))))
