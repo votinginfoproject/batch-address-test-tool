@@ -39,7 +39,7 @@
                 :access-secret secret-key
                 :region region}
          edn-handler (string->edn handler)]
-     (log/info "Starting consumer on " request-queue " with cred " (pr-str creds))
+     (log/infof "Starting consumer on %s" request-queue)
      (squishy/consume-messages creds request-queue failure-queue edn-handler))))
 
 (defn stop-consumer [consumer-id]
@@ -82,7 +82,7 @@
                     payload))
   ([sns-client topic payload]
    (let [json-payload (json/write-str payload)]
-     (log/info "publishing success to " topic " with payload " json-payload)
+     (log/infof "publishing success to %s with payload %s" topic json-payload)
      (publish sns-client topic json-payload))))
 
 (defn publish-failure
@@ -93,6 +93,6 @@
                     payload))
   ([sns-client topic payload]
    (let [json-payload (json/write-str payload)]
-     (log/info "publishing failure to " topic " with payload " json-payload)
+     (log/infof "publishing failure to %s with payload %s" topic json-payload)
      (publish sns-client topic json-payload))))
 
