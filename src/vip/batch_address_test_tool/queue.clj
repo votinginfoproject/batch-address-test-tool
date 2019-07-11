@@ -57,16 +57,11 @@
                             {:access-key-id     access-key
                              :secret-access-key secret-key})}))
 
-(def sns-client-memo (memoize sns-client))
-
-(defn default-sns-client
-  []
-   ;; memoize the default sns-client invocation so that we
-   ;; can avoid making extra thread pools over time.
-   ;; see https://github.com/cognitect-labs/aws-api/issues/80
-  (sns-client-memo (config [:aws :creds :access-key])
-                   (config [:aws :creds :secret-key])
-                   (config [:aws :region])))
+(def default-sns-client
+  "SNS Client configured by the runtime environment settings"
+  (delay (sns-client (config [:aws :creds :access-key])
+                     (config [:aws :creds :secret-key])
+                     (config [:aws :region]))))
 
 (defn- publish
   [sns-client topic payload]
@@ -77,7 +72,7 @@
 (defn publish-success
   "Publish a successful feed processing message to the topic."
   ([payload]
-   (publish-success (default-sns-client)
+   (publish-success @default-sns-client
                     (config [:aws :sns :address-test-success-arn])
                     payload))
   ([sns-client topic payload]
@@ -88,11 +83,10 @@
 (defn publish-failure
   "Publish a failed feed processing message to the topic."
   ([payload]
-   (publish-failure (default-sns-client)
+   (publish-failure @default-sns-client
                     (config [:aws :sns :address-failure-failure-arn])
                     payload))
   ([sns-client topic payload]
    (let [json-payload (json/write-str payload)]
      (log/infof "publishing failure to %s with payload %s" topic json-payload)
      (publish sns-client topic json-payload))))
-
