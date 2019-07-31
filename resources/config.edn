@@ -1,4 +1,8 @@
-{:rabbitmq {:connection {:host #resource-config/env "RABBITMQ_PORT_5672_TCP_ADDR"
-                         :port #resource-config/edn #resource-config/env "RABBITMQ_PORT_5672_TCP_PORT"}
-            :exchange #resource-config/env "VIP_BA_RABBITMQ_EXCHANGE"}
+{:aws {:creds {:access-key #resource-config/env "AWS_ACCESS_KEY"
+               :secret-key #resource-config/env "AWS_SECRET_KEY"}
+       :region #resource-config/env "AWS_REGION"
+       :sns {:address-test-success-arn #resource-config/env "AWS_SNS_ADDRESS_TEST_SUCCESS"
+             :address-test-failure-arn #resource-config/env "AWS_SNS_ADDRESS_TEST_FAILURE"}
+       :sqs {:address-test-request #resource-config/env "AWS_SQS_ADDRESS_TEST_REQUEST"
+             :address-test-request-failure #resource-config/env "AWS_SQS_ADDRESS_TEST_REQUEST_FAILURE"}}
  :civic-info-api-key #resource-config/env "GOOGLE_CIVIC_INFO_API_KEY"}

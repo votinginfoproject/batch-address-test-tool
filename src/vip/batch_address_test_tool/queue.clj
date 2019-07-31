@@ -1,82 +1,92 @@
 (ns vip.batch-address-test-tool.queue
-  (:require [clojure.tools.logging :as log]
-            [langohr.core :as rmq]
-            [langohr.channel :as lch]
-            [langohr.exchange :as le]
-            [langohr.queue :as lq]
-            [langohr.basic :as lb]
-            [langohr.consumers :as lcons]
-            [clojure.edn :as edn]
+  (:require [clojure.edn :as edn]
+            [clojure.data.json :as json]
+            [clojure.string :as str]
+            [clojure.tools.logging :as log]
+            [cognitect.aws.client.api :as aws]
+            [cognitect.aws.credentials :as credentials]
+            [squishy.core :as squishy]
             [turbovote.resource-config :refer [config]]))
 
-(def rabbit-connection (atom nil))
-(def rabbit-channel (atom nil))
+(defn string->edn [handler]
+  (fn [message]
+    (handler (edn/read-string (:body message)))))
 
-(defn ->handler
-  "Creates a function that can take a rabbit message, parse it as edn, and
-   send it to the handler function"
-  [handler-fn]
-  (fn [ch metadata ^bytes payload]
-    (try
-      (let [message (-> (String. payload)
-                        edn/read-string)]
-       (log/debug "Received a message:" (pr-str message))
-       (handler-fn message))
-      (catch Exception ex
-        (log/error "Error consuming message" (String. payload))
-        (log/error ex)))))
+(defn arn->queue-name
+  "Because we share configuration with different SQS libraries, some libraries
+   want the ARN and others (like squishy) want only the queue name. Rather than
+   maintain multiple configuration values, this function takes an ARN format
+   and returns just the queue name so squishy can be happy. The queue name is
+   the last thing after a forward slash."
+  [arn]
+  (-> arn
+      (str/split #"\/")
+      last))
 
-(defn setup-consumer
-  "Sets up the handler function to process messages on the
-   batch-address.file.submit channel"
-  [ch handler-fn]
-  (lq/declare ch "batch-address.file.submit" {:durable true :auto-delete false})
-  (lcons/subscribe ch "batch-address.file.submit"
-                 (->handler handler-fn)
-                 {:auto-ack true}))
+(defn start-consumer
+  "Start an sqs consumer that pulls messages from the request-queue, converts
+  them to EDN, and sends them to the handler function."
+  ([handler]
+   (start-consumer
+    (config [:aws :creds :access-key])
+    (config [:aws :creds :secret-key])
+    (config [:aws :region])
+    (arn->queue-name (config [:aws :sqs :address-test-request]))
+    (arn->queue-name (config [:aws :sqs :address-test-request-failure]))
+    handler))
+  ([access-key secret-key region request-queue failure-queue handler]
+   (let [creds {:access-key access-key
+                :access-secret secret-key
+                :region region}
+         edn-handler (string->edn handler)]
+     (log/infof "Starting consumer on %s" request-queue)
+     (squishy/consume-messages creds request-queue failure-queue edn-handler))))
 
-(defn initialize
-  "Connects to rabbit and sets up handler function to consume messages"
-  [handler-fn]
-  (let [max-retries 5]
-    (loop [attempt 1]
-      (try
-        (reset! rabbit-connection
-                (rmq/connect (or (config [:rabbitmq :connection])
-                                 {})))
-        (log/info "RabbitMQ connected.")
-        (catch Throwable t
-          (log/warn "RabbitMQ not available:" (.getMessage t) "attempt:" attempt)))
-      (when (nil? @rabbit-connection)
-        (if (< attempt max-retries)
-          (do (Thread/sleep (* attempt 1000))
-              (recur (inc attempt)))
-          (do (log/error "Connecting to RabbitMQ failed. Bailing.")
-            (throw (ex-info "Connecting to RabbitMQ failed" {:attempts attempt})))))))
-  (reset! rabbit-channel
-          (let [ch (lch/open @rabbit-connection)]
-            (le/topic ch (config [:rabbitmq :exchange]) {:durable false :auto-delete true})
-            (log/info "RabbitMQ topic set.")
-            (setup-consumer ch handler-fn)
-            ch)))
+(defn stop-consumer [consumer-id]
+  (squishy/stop-consumer consumer-id))
 
-(defn publish-to-queue
-  "Sends the payload to the given queue, printing it as a EDN string"
-  [payload queue-name]
-  (log/debug (pr-str payload) "->" queue-name)
-  (lb/publish @rabbit-channel
-              ""
-              queue-name
-              (pr-str payload)
-              {:content-type "application/edn"}))
+;; Much/most of this is copied from `data-processor` verbatim, and if we had
+;; a better config story here, we could make it into a library of some kind
 
-(defn publish-event
-  "Publish a message to the batch-address topic exchange on the given
-  routing-key. The payload will be converted to EDN."
-  [payload routing-key]
-  (log/debug (pr-str payload) "->" routing-key)
-  (lb/publish @rabbit-channel
-              (config [:rabbitmq :exchange])
-              routing-key
-              (pr-str payload)
-              {:content-type "application/edn" :type "batch-address.event"}))
+(defn sns-client
+  [access-key secret-key region]
+   (aws/client
+    {:api                  :sns
+     :region               region
+     :credentials-provider (credentials/basic-credentials-provider
+                            {:access-key-id     access-key
+                             :secret-access-key secret-key})}))
+
+(def default-sns-client
+  "SNS Client configured by the runtime environment settings"
+  (delay (sns-client (config [:aws :creds :access-key])
+                     (config [:aws :creds :secret-key])
+                     (config [:aws :region]))))
+
+(defn- publish
+  [sns-client topic payload]
+  (aws/invoke sns-client {:op :Publish
+                          :request {:TopicArn topic
+                                    :Message payload}}))
+
+(defn publish-success
+  "Publish a successful feed processing message to the topic."
+  ([payload]
+   (publish-success @default-sns-client
+                    (config [:aws :sns :address-test-success-arn])
+                    payload))
+  ([sns-client topic payload]
+   (let [json-payload (json/write-str payload)]
+     (log/infof "publishing success to %s with payload %s" topic json-payload)
+     (publish sns-client topic json-payload))))
+
+(defn publish-failure
+  "Publish a failed feed processing message to the topic."
+  ([payload]
+   (publish-failure @default-sns-client
+                    (config [:aws :sns :address-failure-failure-arn])
+                    payload))
+  ([sns-client topic payload]
+   (let [json-payload (json/write-str payload)]
+     (log/infof "publishing failure to %s with payload %s" topic json-payload)
+     (publish sns-client topic json-payload))))

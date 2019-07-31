@@ -2,18 +2,14 @@ version: "3"
 services:
   batch-address:
     build: .
-    depends_on:
-      - rabbitmq
     environment:
-      RABBITMQ_PORT_5672_TCP_ADDR: rabbitmq
-      RABBITMQ_PORT_5672_TCP_PORT: 5672
-      VIP_BA_RABBITMQ_EXCHANGE: events
+      AWS_ACCESS_KEY: 
+      AWS_SECRET_KEY: 
+      AWS_REGION: us-east-1
+      AWS_SQS_ADDRESS_TEST_REQUEST: "dev-address-test-request"
+      AWS_SQS_ADDRESS_TEST_REQUEST_FAILURE: "dev-address-test-request-failure"
+      AWS_SNS_ADDRESS_TEST_SUCCESS: 
+      AWS_SNS_ADDRESS_TEST_FAILURE: 
+      GOOGLE_CIVIC_INFO_API_KEY: 
     ports:
       - 10000:10000
-
-  rabbitmq:
-    image: rabbitmq:3.6.5-management
-    ports:
-      - 45672:5672
-      - 55672:15672
-    hostname: rabbitmq
