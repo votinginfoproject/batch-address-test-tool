@@ -84,7 +84,7 @@
   "Publish a failed feed processing message to the topic."
   ([payload]
    (publish-failure @default-sns-client
-                    (config [:aws :sns :address-failure-failure-arn])
+                    (config [:aws :sns :address-test-failure-arn])
                     payload))
   ([sns-client topic payload]
    (let [json-payload (json/write-str payload)]
