@@ -149,10 +149,10 @@
       (csv/write-csv writer csv-data))
     temp-file))
 
-(defn prepare-response*
+(defn prepare-file-response*
   "Saves output file to s3 and generates data for response message"
   [ctx]
-  (log/info "prepare-response: " (pr-str ctx))
+  (log/info "prepare-file-response: " (pr-str ctx))
   (let [fips-code (get-in ctx [:input "fipsCode"])
         bucket-name (get-in ctx [:input "bucketName"])
         output-file-name (str/join "/" [fips-code "output" "results.csv"])
@@ -162,7 +162,16 @@
                          :bucket-name bucket-name
                          :url (.toString (cloud-store/url-for-file bucket-name output-file-name))})))
 
-(def prepare-response (->pass-through prepare-response*))
+(def prepare-file-response (->pass-through prepare-file-response*))
+
+(defn prepare-stats-response*
+  "Collects the count of match/possible mismatch/mismatch/no results"
+  [ctx]
+  (log/info "prepare-stats-response: " (pr-str ctx))
+  (let [matches (map :match (:addresses ctx))]
+    (assoc ctx :stats (frequencies matches))))
+
+(def prepare-stats-response (->pass-through prepare-stats-response*))
 
 (defn respond
   "Publishes response message to output queue"
@@ -176,6 +185,7 @@
     (q/publish-success {:fileName (get-in ctx [:results :file-name])
                         :bucketName (get-in ctx [:results :bucket-name])
                         :status "ok"
+                        :stats (:stats ctx)
                         :url (get-in ctx [:results :url])
                         :fipsCode (get-in ctx [:input "fipsCode"])
                         :transactionId (get-in ctx [:input "transactionId"])})))
@@ -194,5 +204,6 @@
         retrieve-polling-locations
         calculate-scores
         calculate-matches
-        prepare-response
+        prepare-file-response
+        prepare-stats-response
         respond)))
