@@ -70,3 +70,15 @@
                                                        :api-result "baz"
                                                        :polling-location-count 1
                                                        :match "blee"})))))
+
+(deftest prepare-stats-response*-test
+  (testing "calculates frequencies of each match result"
+    (let [ctx {:addresses [{:match "Match"}
+                           {:match "No Result"}
+                           {:match "No Result"}
+                           {:match "Mismatch"}]}
+          ctx' (prepare-stats-response* ctx)]
+      (is (= {"Match" 1
+              "No Result" 2
+              "Mismatch" 1}
+             (:stats ctx'))))))
